@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  mqtt_broker:
+    image: eclipse-mosquitto:2.0.4
+    ports:
+      - "${MQTT_BROKER_EXPOSED_PORT:-1883}:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  influxdb:
+    image: influxdb:1.8.3
+    ports:
+      - "${INFLUXDB_EXPOSED_PORT:-8086}:8086"
+    environment:
+      - INFLUXDB_DB=${INFLUXDB_DB:-db}
+    volumes:
+      - db_storage:/var/lib/influxdb
+
+  chronograf:
+    image: chronograf:1.8.8
+    ports:
+      - "${CHRONOGRAF_EXPOSED_PORT:-8888}:8888"
+    depends_on:
+      - influxdb
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+    volumes:
+      - chronograf_storage:/var/lib/chronograf
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "${GRAFANA_EXPOSED_PORT:-3000}:3000"
+    depends_on:
+      - influxdb
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_ADMIN_USER:-user}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:-user}
+    volumes:
+    - grafana_storage:/var/lib/grafana
+
+volumes:
+  db_storage:
+  chronograf_storage:
+  grafana_storage:
