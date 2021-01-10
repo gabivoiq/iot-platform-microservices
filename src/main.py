@@ -1,11 +1,11 @@
 import paho.mqtt.client as mqtt
 from influxdb import InfluxDBClient
+from datetime import datetime
 import json
 import logging
 import os
 import sys
 import time
-from datetime import datetime
 
 logger = logging.getLogger("main_adapter")
 
@@ -15,7 +15,7 @@ INFLUXDB_DB = os.getenv("INFLUXDB_DB", "db")
 
 MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "localhost")
 MQTT_BROKER_PORT = int(os.getenv("MQTT_BROKER_INTERNAL_PORT", 1883))
-IS_DEBUG = os.getenv("DEBUG_DATA_FLOW", "true")
+IS_DEBUG = os.getenv("DEBUG_DATA_FLOW", "false")
 
 
 def filter_json(msg):
@@ -70,7 +70,7 @@ def send_data_db(json_data, topic):
                 }
             })
 
-        logger.debug(json_body_db)
+        logger.debug("Sending data to InfluxDB: " + str(json_body_db))
         influxDB_client.write_points(json_body_db)
     except ValueError as ve:
         logger.error("An error occurred when parsing json data", exc_info=ve)
@@ -102,17 +102,13 @@ def init_logger():
 
 
 def connect_mqtt_broker():
-    start_time = time.time()
     while True:
         try:
             code = mqtt_client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT)
             if code == 0:
-                logger.info("Successfully connected to MQTT broker")
                 break
         except Exception as e:
-            if start_time + 15 < time.time():
-                sys.exit("Error connecting to MQTT broker - " + MQTT_BROKER_HOST + ":" + str(MQTT_BROKER_PORT))
-            logger.warning("Error connecting to MQTT broker. Trying again...", exc_info=e)
+            logger.warning("Error connecting to MQTT broker: {}. Trying again...".format(e))
             time.sleep(1)
 
 

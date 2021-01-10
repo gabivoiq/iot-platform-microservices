@@ -5,31 +5,29 @@ services:
     image: eclipse-mosquitto:2.0.4
     ports:
       - "1883:1883"
+    networks:
+      - network_broker_adapter
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
 
   influxdb:
     image: influxdb:1.8.3
     ports:
-      - "8086:8086"
+      - "8086"
+    networks:
+      - network_db_grafana
+      - network_db_adapter
     environment:
       - INFLUXDB_DB=db
     volumes:
       - db_storage:/var/lib/influxdb
 
-  chronograf:
-    image: chronograf:1.8.8
-    ports:
-      - "8888:8888"
-    environment:
-      - INFLUXDB_URL=http://influxdb:8086
-    volumes:
-      - chronograf_storage:/var/lib/chronograf
-
   grafana:
     image: grafana/grafana:7.3.6
     ports:
       - "80:80"
+    networks:
+      - network_db_grafana
     environment:
       - GF_SERVER_HTTP_PORT=80
       - GF_SECURITY_ADMIN_USER=asistent
@@ -39,8 +37,11 @@ services:
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
 
-  db_adapter:
-    image: db_adapter:latest
+  python_adapter:
+    image: python_adapter:latest
+    networks:
+      - network_broker_adapter
+      - network_db_adapter
     environment:
       - INFLUXDB_INTERNAL_PORT=8086
       - INFLUXDB_DB=db
@@ -51,5 +52,9 @@ services:
 
 volumes:
   db_storage:
-  chronograf_storage:
   grafana_storage:
+
+networks:
+  network_broker_adapter:
+  network_db_adapter:
+  network_db_grafana:
